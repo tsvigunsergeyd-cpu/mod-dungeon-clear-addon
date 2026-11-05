@@ -60,8 +60,7 @@ std::string DcDungeonQueueFillManager::RefuseReason(Player* player,
     if (transient)
         *transient = false;
 
-    if (!DcModule::IsEnabled())
-        return "module disabled";
+    // Local change: queue fill is independent of the DungeonClear master switch.
     if (!DcSettings::GetBool(ObjectGuid::Empty, "DungeonQueueFill.Enable"))
         return "DungeonQueueFill.Enable is off";
 
@@ -357,8 +356,7 @@ void DcDungeonQueueFillManager::Tick(std::uint32_t diff)
 
     // Turning the feature off mid-flight releases what is in flight rather
     // than stranding logged-in bots in a queue nobody is watching.
-    if (!DcModule::IsEnabled() ||
-        !DcSettings::GetBool(ObjectGuid::Empty, "DungeonQueueFill.Enable"))
+    if (!DcSettings::GetBool(ObjectGuid::Empty, "DungeonQueueFill.Enable"))
     {
         _deferred.clear();
         ReleaseAll("feature turned off mid-flight");
