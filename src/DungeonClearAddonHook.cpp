@@ -119,6 +119,12 @@ namespace
             return;
         }
 
+        if (!DungeonClearDispatch::IsControlAllowed(player, "dc set"))
+        {
+            SendAddonError(player, "Only the raid owner can control these bots.");
+            return;
+        }
+
         if (subCmd == "reset")
         {
             // param is the key to reset, or empty to reset the whole run.
@@ -309,6 +315,12 @@ public:
         {
             LOG_DEBUG("module", "mod-dungeon-clear: unknown addon subcommand '{}' from {}",
                       subCmd, player->GetName());
+            return;
+        }
+
+        if (!DungeonClearDispatch::IsControlAllowed(player, action))
+        {
+            SendAddonError(player, "Only the raid owner can control these bots.");
             return;
         }
 

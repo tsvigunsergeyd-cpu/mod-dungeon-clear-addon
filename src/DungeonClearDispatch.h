@@ -19,6 +19,24 @@
 
 namespace DungeonClearDispatch
 {
+    // Raid-browser bots obey only their owner (and GMs). Read-only queries stay open.
+    inline bool IsControlAllowed(Player* issuer, std::string const& action)
+    {
+        if (!issuer)
+            return false;
+        if (action == "dc status" || action == "dc bosses")
+            return true;
+        Player* leader = DcLeaderSignal::FindLeaderTank(issuer);
+        if (!leader)
+            return true;  // no tank: callers report their own error
+        PlayerbotAI* leaderAI = GET_PLAYERBOT_AI(leader);
+        if (!leaderAI || !leaderAI->IsRaidBrowserBot())
+            return true;
+        if (issuer->GetGUID() == leaderAI->GetRaidBrowserOwner())
+            return true;
+        return issuer->GetSession() && issuer->GetSession()->GetSecurity() >= SEC_GAMEMASTER;
+    }
+
     // Dispatch "dc <sub>" to the issuer's group's elected leader tank — the
     // single bot that owns the run for the whole party or raid (see
     // DcLeaderSignal::FindLeaderTank). All DC state lives on the leader, so
@@ -28,6 +46,8 @@ namespace DungeonClearDispatch
     inline uint32 DispatchToTankBots(Player* issuer, std::string const& action, std::string const& param = "")
     {
         if (!issuer)
+            return 0;
+        if (!IsControlAllowed(issuer, action))
             return 0;
 
         Player* leader = DcLeaderSignal::FindLeaderTank(issuer);
