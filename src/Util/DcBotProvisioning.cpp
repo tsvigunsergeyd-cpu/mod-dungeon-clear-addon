@@ -86,51 +86,10 @@ namespace DcBotProvisioning
         // a run needs to be reproducible.
         StripEquipment(bot);
         factory.Randomize(false);
-        if (specNo >= 0)
-        {
-            PlayerbotFactory::InitTalentsBySpecNo(bot, specNo, true);
-            factory.InitEquipment(false, true);
-            factory.InitGlyphs(false);
 
-            // Gear first, enchants/gems second — the order the `autogear` then
-            // `maintenance` chat commands run in. Randomize() already ends with an
-            // ApplyEnchantAndGemsNew() pass, but the spec re-gear above swaps those
-            // enchanted/gemmed items out for freshly rolled bare ones, so without
-            // this second pass every spec-forced bot (i.e. every tank and healer in
-            // a test run) fights with no enchants and empty sockets. Cheap relative
-            // to Randomize, and it only touches what is currently equipped.
-            if (bot->GetLevel() >= DC_PB_CONFIG(MinEnchantingBotLevel, minEnchantingBotLevel))
-                factory.ApplyEnchantAndGemsNew();
-        }
-        if (bot->getClass() == CLASS_HUNTER)
-            factory.InitPet();
-
-        // AMMO LAST, FOR EVERY CLASS — for the same reason the enchant pass above runs
-        // last, and it was the same oversight one line further down.
-        //
-        // Randomize() ends with its own InitAmmo(), which loads ammo for the ranged
-        // weapon IT rolled. The spec re-gear then replaces that weapon, and a gun and a
-        // bow do not take the same projectile — so a bot whose random roll gave it a bow
-        // and whose prot re-gear gave it a gun ends up holding a rifle loaded with
-        // arrows. Re-running InitAmmo() only for hunters left every other class stranded
-        // on whatever the pre-re-gear weapon needed.
-        //
-        // Not a cosmetic mismatch. PLAYER_AMMO_ID is set, so every "do I have ammo" test
-        // passes, and the failure only surfaces where it counts: the server rejects the
-        // Shoot cast itself, silently, and the bot has no ranged opener at all. A warrior
-        // has no class opener either (Heroic Throw is level 71), so the tank has nothing
-        // — which for a scripted pull means standing on the stand spot for the whole leg
-        // budget and then walking into the room. Live: Erinerice and Moge, both prot
-        // warriors, both holding Rifle of the Stoic Guardian with Timeless Arrows loaded,
-        // failed the Selin stage that way in tr-20260803-154419-13 and -17 while every
-        // druid and paladin tank in the same plan pulled normally on a class opener.
-        //
-        // InitAmmo() self-gates to hunter/rogue/warrior and re-derives the projectile
-        // class from the CURRENTLY equipped weapon, so calling it unconditionally is both
-        // safe and the whole fix.
-        factory.InitAmmo();
-
-        if (PlayerbotAI* botAI = GET_PLAYERBOT_AI(bot))
-            botAI->ResetStrategies();
+        // Full role prep on top: force spec, re-gear, glyphs, enchants, ammo, pet,
+        // consumables. StripEquipment above already wiped the sheet, so strip=true
+        // here is a single, consistent path (it will just wipe an empty sheet).
+        factory.PrepareBotForContent(bot, specNo, /*strip*/ true, /*consumables*/ true, /*pet*/ true);
     }
 }
